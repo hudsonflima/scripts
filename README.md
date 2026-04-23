@@ -15,14 +15,14 @@ Script PowerShell para remover a chave de ativação Pro genérica, detectar o t
 
 ## Como executar
 
-1. Clique com o botão direito sobre o arquivo `Downgrade_Home.ps1`
+1. Clique com o botão direito sobre o arquivo `RemoveGenericKey.ps1`
 2. Selecione **"Executar com o PowerShell como Administrador"**
 
 Ou via terminal:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\Downgrade_Home.ps1
+.\RemoveGenericKey.ps1
 ```
 
 ---
@@ -149,13 +149,13 @@ Solicita a chave de produto ao usuário via terminal, validando o formato antes 
 Todas as operações são registradas em:
 
 ```
-<diretório do script>\logs\Downgrade_Home.log
+<diretório do script>\logs\RemoveGenericKey.log
 ```
 
 O arquivo é criado automaticamente caso não exista. Cada entrada segue o formato:
 
 ```
-yyyy-MM-dd HH:mm:ss [Downgrade_Home] Mensagem
+yyyy-MM-dd HH:mm:ss [RemoveGenericKey] Mensagem
 ```
 
 O log é salvo em **UTF-8** para preservar acentuação e caracteres especiais.
