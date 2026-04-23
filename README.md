@@ -1,4 +1,4 @@
-# Downgrade_Home.ps1 — Documentação
+# RemoveGenericKey.ps1 — Documentação
 
 Script PowerShell para remover a chave de ativação Pro genérica, detectar o tipo de licença (OEM ou RTM) e realizar a ativação do Windows 11 Home Single Language.
 
