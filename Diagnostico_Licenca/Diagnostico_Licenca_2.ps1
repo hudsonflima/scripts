@@ -1,21 +1,21 @@
 <#
 .SYNOPSIS
-    Diagnóstico completo de licenciamento, versão e atualizações do Windows.
-    Detecta divergência entre a chave OEM (BIOS) e a chave instalada,
-    identifica chaves genéricas (GVLK) e aplica correção automática (opcional).
+    Diagnostico completo de licenciamento, versao e atualizacoes do Windows.
+    Detecta divergencia entre a chave OEM (BIOS) e a chave instalada,
+    identifica chaves genericas (GVLK) e aplica correcao automatica (opcional).
 .DESCRIPTION
-    Este script gera um relatório detalhado que inclui:
+    Este script gera um relatorio detalhado que inclui:
     - Chave de produto OEM (BIOS) e chave instalada.
     - Canal de licenciamento (OEM, Retail, Volume).
-    - Status de ativação do Windows.
-    - Detecção de chave genérica (GVLK) por sufixo e canal.
-    - Edição, versão e compilação do Windows.
-    - Data da última atualização instalada (dd/mm/yyyy).
-    - Comparação OEM vs. chave instalada com correção automática (se permitido).
+    - Status de ativacao do Windows.
+    - Deteccao de chave generica (GVLK) por sufixo e canal.
+    - Edicao, versao e compilacao do Windows.
+    - Data da ultima atualizacao instalada (dd/mm/yyyy).
+    - Comparacao OEM vs. chave instalada com correcao automatica (se permitido).
 .PARAMETER DiagnosticOnly
-    Se especificado, realiza apenas o diagnóstico, sem aplicar correções de chave.
+    Se especificado, realiza apenas o diagnostico, sem aplicar correcoes de chave.
 .NOTES
-    Requer: Execução como Administrador.
+    Requer: Execucao como Administrador.
     Compatibilidade: Windows 10/11
 #>
 
@@ -24,12 +24,13 @@ param(
 )
 
 # ─────────────────────────────────────────────
-#  Configuração de log
+#  Configuracao de log
 # ─────────────────────────────────────────────
 $ScriptName = "Diagnostico_Licenca"
 if ($PSScriptRoot) {
     $logDir = Join-Path $PSScriptRoot "logs"
-} else {
+}
+else {
     $logDir = Join-Path $env:TEMP "Diagnostico_Logs"
 }
 $logFile = Join-Path $logDir "$ScriptName.log"
@@ -45,7 +46,7 @@ function Write-Log {
 }
 
 # ─────────────────────────────────────────────
-#  Helpers de exibição
+#  Helpers de exibicao
 # ─────────────────────────────────────────────
 function Write-DiagnosticResult {
     param(
@@ -62,9 +63,9 @@ function Write-DiagnosticResult {
 
 function Write-Section {
     param([string]$Title)
-    Write-Host "`n── $Title " -ForegroundColor DarkCyan -NoNewline
-    Write-Host ("─" * (50 - $Title.Length)) -ForegroundColor DarkGray
-    Write-Log "── $Title"
+    Write-Host "`n-- $Title " -ForegroundColor DarkCyan -NoNewline
+    Write-Host ("-" * (50 - $Title.Length)) -ForegroundColor DarkGray
+    Write-Log "-- $Title"
 }
 
 function Invoke-Slmgr {
@@ -74,7 +75,7 @@ function Invoke-Slmgr {
 }
 
 # ─────────────────────────────────────────────
-#  Verificação de privilégios
+#  Verificacao de privilegios
 # ─────────────────────────────────────────────
 $currentPrincipal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
 if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
@@ -83,12 +84,13 @@ if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Adm
 }
 
 Clear-Host
-Write-Host "===== DIAGNÓSTICO DE LICENCIAMENTO DO WINDOWS =====" -ForegroundColor Yellow
+Write-Host "===== DIAGNOSTICO DE LICENCIAMENTO DO WINDOWS =====" -ForegroundColor Yellow
 if ($DiagnosticOnly) {
-    Write-Host "(Modo: Somente Diagnóstico)" -ForegroundColor DarkYellow
+    Write-Host "(Modo: Somente Diagnostico)" -ForegroundColor DarkYellow
 }
-Write-Host "Iniciando análise detalhada do sistema...`n" -ForegroundColor Gray
-Write-Log "===== Início do diagnóstico ====="
+Write-Host "Iniciando analise detalhada do sistema..." -ForegroundColor Gray
+Write-Host ""
+Write-Log "===== Inicio do diagnostico ====="
 
 # ─────────────────────────────────────────────
 #  1. CHAVE OEM NA BIOS/UEFI
@@ -101,11 +103,13 @@ try {
 
     if ($oemKey) {
         Write-DiagnosticResult "BIOS" "Chave OEM (BIOS)" $oemKey
-    } else {
+    }
+    else {
         Write-DiagnosticResult "BIOS" "Chave OEM (BIOS)" "Nenhuma chave OEM encontrada na BIOS/UEFI"
     }
-} catch {
-    Write-DiagnosticResult "BIOS" "Erro" "Não foi possível acessar o firmware. Execute como Admin."
+}
+catch {
+    Write-DiagnosticResult "BIOS" "Erro" "Nao foi possivel acessar o firmware. Execute como Admin."
     Write-Log "ERRO ao consultar BIOS: $_"
 }
 
@@ -117,60 +121,62 @@ Write-Section "LICENCIAMENTO"
 
 $windowsAppID = '55c92734-d682-4d71-983e-d6ec3f16059f'  # Windows OS
 $licensingData = Get-CimInstance -ClassName SoftwareLicensingProduct |
-    Where-Object { $_.PartialProductKey -and $_.ApplicationID -eq $windowsAppID }
+Where-Object { $_.PartialProductKey -and $_.ApplicationID -eq $windowsAppID }
 
 if (-not $licensingData) {
     $licensingData = Get-CimInstance -ClassName SoftwareLicensingProduct |
-        Where-Object { $_.PartialProductKey -and $_.Name -like 'Windows*' }
+    Where-Object { $_.PartialProductKey -and $_.Name -like 'Windows*' }
 }
 
 $installedPartial = $null
 
 if ($licensingData) {
     $licenseStatus = switch ($licensingData.LicenseStatus) {
-        0 { "Não Licenciado" }
+        0 { "Nao Licenciado" }
         1 { "Licenciado (Ativado)" }
-        2 { "Período de avaliação" }
-        3 { "Período de avaliação expirado" }
-        4 { "Notificação de avaliação" }
+        2 { "Periodo de avaliacao" }
+        3 { "Periodo de avaliacao expirado" }
+        4 { "Notificacao de avaliacao" }
         default { "Desconhecido ($($licensingData.LicenseStatus))" }
     }
 
     $licenseType = switch -Wildcard ($licensingData.ProductKeyChannel) {
-        "*OEM*"    { "OEM — Vinculado ao hardware" }
-        "*Retail*" { "Retail — Chave adquirida separadamente" }
-        "*Volume*" { "Volume (GVLK/MAK) — Licenciamento corporativo" }
-        default    { "Outro (possivelmente Licença Digital)" }
+        "*OEM*" { "OEM - Vinculado ao hardware" }
+        "*Retail*" { "Retail - Chave adquirida separadamente" }
+        "*Volume*" { "Volume (GVLK/MAK) - Licenciamento corporativo" }
+        default { "Outro (possivelmente Licenca Digital)" }
     }
 
     $installedPartial = $licensingData.PartialProductKey
 
-    Write-DiagnosticResult "SISTEMA" "Status da Licença"       $licenseStatus
-    Write-DiagnosticResult "SISTEMA" "Canal de Licença"        $licensingData.ProductKeyChannel
-    Write-DiagnosticResult "SISTEMA" "Tipo de Licença"         $licenseType
+    Write-DiagnosticResult "SISTEMA" "Status da Licenca"       $licenseStatus
+    Write-DiagnosticResult "SISTEMA" "Canal de Licenca"        $licensingData.ProductKeyChannel
+    Write-DiagnosticResult "SISTEMA" "Tipo de Licenca"         $licenseType
     Write-DiagnosticResult "SISTEMA" "Chave Parcial Instalada" $installedPartial
 
     # Leitura da chave de backup no registro
     try {
         $regKeyPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform"
-        $backupKey  = Get-ItemPropertyValue -Path $regKeyPath -Name "BackupProductKeyDefault" -ErrorAction Stop
+        $backupKey = Get-ItemPropertyValue -Path $regKeyPath -Name "BackupProductKeyDefault" -ErrorAction Stop
         if ($backupKey) {
             Write-DiagnosticResult "SISTEMA" "Chave Instalada (Backup Registro)" $backupKey
         }
-    } catch {
-        Write-DiagnosticResult "SISTEMA" "Chave Instalada (Backup Registro)" "Não disponível"
     }
-} else {
+    catch {
+        Write-DiagnosticResult "SISTEMA" "Chave Instalada (Backup Registro)" "Nao disponivel"
+    }
+}
+else {
     Write-DiagnosticResult "SISTEMA" "ERRO" "Nenhum produto de licenciamento do Windows encontrado."
 }
 
 # ─────────────────────────────────────────────
-#  3. DETECÇÃO DE CHAVE GENÉRICA (GVLK)
-#     Lista de objetos para evitar duplicação
+#  3. DETECCAO DE CHAVE GENERICA (GVLK)
+#     Lista de objetos para evitar duplicacao
 # ─────────────────────────────────────────────
-Write-Section "DETECÇÃO DE CHAVE GENÉRICA"
+Write-Section "DETECCAO DE CHAVE GENERICA"
 
-# Lista robusta de chaves genéricas da Microsoft (Windows 10/11/Server)
+# Lista robusta de chaves genericas da Microsoft (Windows 10/11/Server)
 $genericKeyList = @(
     # Windows 11
     [PSCustomObject]@{ Suffix = "W269N"; Edition = "Windows 11 Pro" }
@@ -217,141 +223,150 @@ $genericKeyList = @(
     [PSCustomObject]@{ Suffix = "CB7KF"; Edition = "Windows Server 2016 Datacenter" }
 )
 
-$isGeneric      = $false
-$genericReason  = @()
+$isGeneric = $false
+$genericReason = @()
 $genericEdition = $null
 
 if ($installedPartial) {
     $partialUpper = $installedPartial.ToUpper().Trim()
 
-    # Verificação 1: sufixo na lista de chaves genéricas conhecidas
+    # Verificacao 1: sufixo na lista de chaves genericas conhecidas
     $match = $genericKeyList | Where-Object { $_.Suffix -eq $partialUpper }
     if ($match) {
-        $isGeneric      = $true
+        $isGeneric = $true
         $genericEdition = $match.Edition
-        $genericReason += "Sufixo '$partialUpper' é GVLK conhecida para: $genericEdition"
+        $genericReason += "Sufixo '$partialUpper' eh GVLK conhecida para: $genericEdition"
     }
 
-    # Verificação 2: canal Volume:GVLK (chaves de ativação KMS)
+    # Verificacao 2: canal Volume:GVLK (chaves de ativacao KMS)
     if ($licensingData -and $licensingData.ProductKeyChannel -like "*Volume:GVLK*") {
-        $isGeneric      = $true
-        $genericReason += "Canal de licença é 'Volume:GVLK' (ativação por servidor KMS)"
+        $isGeneric = $true
+        $genericReason += "Canal de licenca eh 'Volume:GVLK' (ativacao por servidor KMS)"
     }
 
-    # Verificação 3: Windows não ativado com chave parcial presente
+    # Verificacao 3: Windows nao ativado com chave parcial presente
     if ($licensingData -and $licensingData.LicenseStatus -ne 1) {
-        $genericReason += "LicenseStatus=$($licensingData.LicenseStatus) — Windows não está ativado"
+        $genericReason += "LicenseStatus=$($licensingData.LicenseStatus) - Windows nao esta ativado"
     }
 
     if ($isGeneric) {
-        Write-Host "`n⚠ CHAVE GENÉRICA DETECTADA" -ForegroundColor Red
+        Write-Host "`n[ALERTA] CHAVE GENERICA DETECTADA" -ForegroundColor Red
         foreach ($reason in $genericReason) {
-            Write-DiagnosticResult "GENÉRICA" "Motivo" $reason
+            Write-DiagnosticResult "GENERICA" "Motivo" $reason
         }
         if ($genericEdition) {
-            Write-DiagnosticResult "GENÉRICA" "Edição mapeada" $genericEdition
+            Write-DiagnosticResult "GENERICA" "Edicao mapeada" $genericEdition
         }
-        Write-DiagnosticResult "GENÉRICA" "Conclusão" "Esta chave NÃO ativa o Windows. É apenas uma chave de instalação padrão."
-        Write-Log "CHAVE GENÉRICA detectada. Sufixo=$partialUpper | Motivos: $($genericReason -join ' | ')"
-    } else {
-        Write-Host "`n✔ Chave instalada não é genérica." -ForegroundColor Green
-        Write-DiagnosticResult "GENÉRICA" "Sufixo verificado" $partialUpper
-        Write-DiagnosticResult "GENÉRICA" "Conclusão" "Chave proprietária — pode ser OEM, Retail ou Licença Digital."
-        Write-Log "Chave NÃO genérica. Sufixo=$partialUpper"
+        Write-DiagnosticResult "GENERICA" "Conclusao" "Esta chave NAO ativa o Windows. Eh apenas uma chave de instalacao padrao."
+        Write-Log "CHAVE GENERICA detectada. Sufixo=$partialUpper | Motivos: $($genericReason -join ' | ')"
     }
-} else {
-    Write-DiagnosticResult "GENÉRICA" "Verificação" "Nenhuma chave parcial disponível para análise."
-    Write-Log "Verificação de chave genérica ignorada: sem chave parcial instalada."
+    else {
+        Write-Host "`n[OK] Chave instalada nao eh generica." -ForegroundColor Green
+        Write-DiagnosticResult "GENERICA" "Sufixo verificado" $partialUpper
+        Write-DiagnosticResult "GENERICA" "Conclusao" "Chave proprietaria - pode ser OEM, Retail ou Licenca Digital."
+        Write-Log "Chave NAO generica. Sufixo=$partialUpper"
+    }
+}
+else {
+    Write-DiagnosticResult "GENERICA" "Verificacao" "Nenhuma chave parcial disponivel para analise."
+    Write-Log "Verificacao de chave generica ignorada: sem chave parcial instalada."
 }
 
 # ─────────────────────────────────────────────
-#  4. EDIÇÃO, VERSÃO E BUILD
+#  4. EDICAO, VERSAO E BUILD
 # ─────────────────────────────────────────────
-Write-Section "VERSÃO DO SISTEMA"
+Write-Section "VERSAO DO SISTEMA"
 
 $osInfo = Get-CimInstance -ClassName Win32_OperatingSystem
-Write-DiagnosticResult "VERSÃO" "Edição do Windows" $osInfo.Caption
-Write-DiagnosticResult "VERSÃO" "Número da Versão"  $osInfo.Version
-Write-DiagnosticResult "VERSÃO" "Build do Sistema"  $osInfo.BuildNumber
+Write-DiagnosticResult "VERSAO" "Edicao do Windows" $osInfo.Caption
+Write-DiagnosticResult "VERSAO" "Numero da Versao"  $osInfo.Version
+Write-DiagnosticResult "VERSAO" "Build do Sistema"  $osInfo.BuildNumber
 
 # ─────────────────────────────────────────────
-#  5. DATA DA ÚLTIMA ATUALIZAÇÃO
+#  5. DATA DA ULTIMA ATUALIZACAO
 # ─────────────────────────────────────────────
-Write-Section "ATUALIZAÇÕES"
+Write-Section "ATUALIZACOES"
 
 try {
     $latestHotfix = Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 1
     if ($latestHotfix.InstalledOn) {
         $formattedDate = $latestHotfix.InstalledOn.ToString("dd/MM/yyyy")
-        Write-DiagnosticResult "ATUALIZAÇÃO" "Última (HotFix)" "$formattedDate — $($latestHotfix.HotFixID)"
-    } else {
-        Write-DiagnosticResult "ATUALIZAÇÃO" "Última (HotFix)" "Nenhuma atualização encontrada"
+        Write-DiagnosticResult "ATUALIZACAO" "Ultima (HotFix)" "$formattedDate - $($latestHotfix.HotFixID)"
     }
-} catch {
-    Write-DiagnosticResult "ATUALIZAÇÃO" "ERRO HotFix" "Falha ao consultar histórico."
+    else {
+        Write-DiagnosticResult "ATUALIZACAO" "Ultima (HotFix)" "Nenhuma atualizacao encontrada"
+    }
+}
+catch {
+    Write-DiagnosticResult "ATUALIZACAO" "ERRO HotFix" "Falha ao consultar historico."
     Write-Log "ERRO HotFix: $_"
 }
 
 try {
-    $updateSession  = New-Object -ComObject Microsoft.Update.Session
+    $updateSession = New-Object -ComObject Microsoft.Update.Session
     $updateSearcher = $updateSession.CreateUpdateSearcher()
-    $historyCount   = $updateSearcher.GetTotalHistoryCount()
+    $historyCount = $updateSearcher.GetTotalHistoryCount()
 
     if ($historyCount -gt 0) {
         $lastComUpdate = $updateSearcher.QueryHistory(0, $historyCount) |
-            Where-Object { $_.ResultCode -eq 2 } |
-            Sort-Object Date -Descending |
-            Select-Object -First 1
+        Where-Object { $_.ResultCode -eq 2 } |
+        Sort-Object Date -Descending |
+        Select-Object -First 1
 
         if ($lastComUpdate) {
             $comDate = $lastComUpdate.Date.ToString("dd/MM/yyyy")
-            Write-DiagnosticResult "ATUALIZAÇÃO" "Última (COM)" "$comDate — $($lastComUpdate.Title)"
+            Write-DiagnosticResult "ATUALIZACAO" "Ultima (COM)" "$comDate - $($lastComUpdate.Title)"
         }
     }
-} catch {
-    Write-DiagnosticResult "ATUALIZAÇÃO" "Última (COM)" "Não disponível para esta versão do Windows"
+}
+catch {
+    Write-DiagnosticResult "ATUALIZACAO" "Ultima (COM)" "Nao disponivel para esta versao do Windows"
 }
 
 # ─────────────────────────────────────────────
-#  6. COMPARAÇÃO OEM vs. CHAVE INSTALADA
-#     e correção automática (se permitido)
+#  6. COMPARACAO OEM vs. CHAVE INSTALADA
+#     e correcao automatica (se permitido)
 # ─────────────────────────────────────────────
-Write-Section "COMPARAÇÃO E CORREÇÃO DE CHAVE"
+Write-Section "COMPARACAO E CORRECAO DE CHAVE"
 
 if ($oemKey -and $installedPartial) {
 
     $oemPartial = $oemKey.Split("-")[-1].ToUpper().Trim()
     $sysPartial = $installedPartial.ToUpper().Trim()
 
-    Write-DiagnosticResult "COMPARAÇÃO" "Sufixo OEM (BIOS)"    $oemPartial
-    Write-DiagnosticResult "COMPARAÇÃO" "Sufixo Instalado"     $sysPartial
+    Write-DiagnosticResult "COMPARACAO" "Sufixo OEM (BIOS)"    $oemPartial
+    Write-DiagnosticResult "COMPARACAO" "Sufixo Instalado"     $sysPartial
 
     if ($oemPartial -eq $sysPartial) {
-        Write-Host "`n✔ A chave instalada corresponde à chave OEM da BIOS. Nenhuma ação necessária." -ForegroundColor Green
-        Write-Log "Chaves OEM e instalada são compatíveis. Nenhuma ação realizada."
+        Write-Host "`n[OK] A chave instalada corresponde a chave OEM da BIOS. Nenhuma acao necessaria." -ForegroundColor Green
+        Write-Log "Chaves OEM e instalada sao compativeis. Nenhuma acao realizada."
 
-    } else {
-        Write-Host "`n⚠ Divergência detectada entre a chave OEM (BIOS) e a chave instalada." -ForegroundColor Yellow
-        Write-Log "DIVERGÊNCIA: OEM=$oemPartial | Instalada=$sysPartial"
+    }
+    else {
+        Write-Host "`n[ALERTA] Divergencia detectada entre a chave OEM (BIOS) e a chave instalada." -ForegroundColor Yellow
+        Write-Log "DIVERGENCIA: OEM=$oemPartial | Instalada=$sysPartial"
 
         if ($DiagnosticOnly) {
-            Write-Host "Modo somente diagnóstico ativo. A correção NÃO será aplicada." -ForegroundColor DarkYellow
-            Write-Log "DiagnosticOnly = true. Correção ignorada."
-        } else {
-            # Solicita confirmação do usuário
+            Write-Host "Modo somente diagnostico ativo. A correcao NAO sera aplicada." -ForegroundColor DarkYellow
+            Write-Log "DiagnosticOnly = true. Correcao ignorada."
+        }
+        else {
+            # Solicita confirmacao do usuario
             Write-Host "Deseja substituir a chave atual pela OEM da BIOS? (S/N): " -ForegroundColor Yellow -NoNewline
             $resp = Read-Host
             if ($resp -ne 'S' -and $resp -ne 's') {
-                Write-Host "Correção cancelada pelo usuário." -ForegroundColor Yellow
-                Write-Log "Correção cancelada pelo usuário."
-            } else {
+                Write-Host "Correcao cancelada pelo usuario." -ForegroundColor Yellow
+                Write-Log "Correcao cancelada pelo usuario."
+            }
+            else {
                 # 6a. Copiar chave OEM para o clipboard
                 try {
                     Set-Clipboard -Value $oemKey
-                    Write-Host "✔ Chave OEM copiada para o clipboard." -ForegroundColor Green
+                    Write-Host "[OK] Chave OEM copiada para o clipboard." -ForegroundColor Green
                     Write-Log "Chave OEM copiada para o clipboard."
-                } catch {
-                    Write-Host "⚠ Não foi possível copiar para o clipboard: $_" -ForegroundColor Yellow
+                }
+                catch {
+                    Write-Host "[ALERTA] Nao foi possivel copiar para o clipboard: $_" -ForegroundColor Yellow
                     Write-Log "AVISO clipboard: $_"
                 }
 
@@ -359,8 +374,9 @@ if ($oemKey -and $installedPartial) {
                 Write-Host "  Removendo a chave instalada atual..." -ForegroundColor Yellow
                 try {
                     $r = Invoke-Slmgr "/upk"
-                    Write-DiagnosticResult "CORREÇÃO" "Remoção da chave atual" $r
-                } catch {
+                    Write-DiagnosticResult "CORRECAO" "Remocao da chave atual" $r
+                }
+                catch {
                     Write-Host "ERRO ao remover a chave atual: $_" -ForegroundColor Red
                     Write-Log "ERRO /upk: $_"
                     exit 1
@@ -370,8 +386,9 @@ if ($oemKey -and $installedPartial) {
                 Write-Host "  Limpando chave do registro..." -ForegroundColor Yellow
                 try {
                     $r = Invoke-Slmgr "/cpky"
-                    Write-DiagnosticResult "CORREÇÃO" "Limpeza do registro" $r
-                } catch {
+                    Write-DiagnosticResult "CORRECAO" "Limpeza do registro" $r
+                }
+                catch {
                     Write-Log "AVISO /cpky: $_"
                 }
 
@@ -381,14 +398,16 @@ if ($oemKey -and $installedPartial) {
                     $svc = Get-CimInstance -ClassName SoftwareLicensingService
                     $svc.InstallProductKey($oemKey) | Out-Null
                     $svc.RefreshLicenseStatus() | Out-Null
-                    Write-DiagnosticResult "CORREÇÃO" "Instalação da chave OEM" "Sucesso (via CIM)"
+                    Write-DiagnosticResult "CORRECAO" "Instalacao da chave OEM" "Sucesso (via CIM)"
                     Write-Log "Chave OEM instalada com sucesso via CIM."
-                } catch {
+                }
+                catch {
                     Write-Host "ERRO ao instalar chave via CIM. Tentando slmgr..." -ForegroundColor Yellow
                     try {
                         $r = Invoke-Slmgr "/ipk", $oemKey
-                        Write-DiagnosticResult "CORREÇÃO" "Instalação da chave OEM (slmgr)" $r
-                    } catch {
+                        Write-DiagnosticResult "CORRECAO" "Instalacao da chave OEM (slmgr)" $r
+                    }
+                    catch {
                         Write-Host "ERRO ao instalar a chave OEM: $_" -ForegroundColor Red
                         Write-Log "ERRO /ipk: $_"
                         exit 1
@@ -399,69 +418,76 @@ if ($oemKey -and $installedPartial) {
                 Write-Host "  Ativando o Windows..." -ForegroundColor Yellow
                 try {
                     $r = Invoke-Slmgr "/ato"
-                    Write-DiagnosticResult "CORREÇÃO" "Ativação" $r
-                    Write-Log "Ativação executada: $r"
-                } catch {
-                    Write-Host "ERRO durante a ativação: $_" -ForegroundColor Red
+                    Write-DiagnosticResult "CORRECAO" "Ativacao" $r
+                    Write-Log "Ativacao executada: $r"
+                }
+                catch {
+                    Write-Host "ERRO durante a ativacao: $_" -ForegroundColor Red
                     Write-Log "ERRO /ato: $_"
                 }
 
                 # 6f. Aguardar e verificar novo status
-                Write-Host "  Aguardando atualização do status de ativação..." -ForegroundColor Yellow
+                Write-Host "  Aguardando atualizacao do status de ativacao..." -ForegroundColor Yellow
                 Start-Sleep -Seconds 3
-                Write-Host "`n  Verificando novo status de ativação..." -ForegroundColor Yellow
+                Write-Host "`n  Verificando novo status de ativacao..." -ForegroundColor Yellow
                 try {
                     $dli = Invoke-Slmgr "/dli"
                     Write-Host "`n$dli" -ForegroundColor Gray
-                    Write-Log "Status pós-correção: $dli"
-                } catch {
+                    Write-Log "Status pos-correcao: $dli"
+                }
+                catch {
                     Write-Log "ERRO /dli: $_"
                 }
             }
         }
     }
-} elseif ($oemKey -and -not $installedPartial) {
-    Write-Host "`n⚠ Chave OEM encontrada na BIOS, mas nenhuma chave está instalada no sistema." -ForegroundColor Yellow
-    Write-Log "OEM presente, nenhuma chave instalada. Intervenção manual recomendada."
-} elseif (-not $oemKey -and $installedPartial) {
-    Write-Host "`n⚙ Nenhuma chave OEM na BIOS. Chave instalada mantida sem alterações." -ForegroundColor Cyan
+}
+elseif ($oemKey -and -not $installedPartial) {
+    Write-Host "`n[ALERTA] Chave OEM encontrada na BIOS, mas nenhuma chave esta instalada no sistema." -ForegroundColor Yellow
+    Write-Log "OEM presente, nenhuma chave instalada. Intervencao manual recomendada."
+}
+elseif (-not $oemKey -and $installedPartial) {
+    Write-Host "`n[INFO] Nenhuma chave OEM na BIOS. Chave instalada mantida sem alteracoes." -ForegroundColor Cyan
     Write-Log "Sem chave OEM. Chave instalada preservada."
-} else {
-    Write-Host "`n⚠ Nenhuma chave encontrada (BIOS ou sistema). Ativação manual necessária." -ForegroundColor Red
+}
+else {
+    Write-Host "`n[ALERTA] Nenhuma chave encontrada (BIOS ou sistema). Ativacao manual necessaria." -ForegroundColor Red
     Write-Log "Nenhuma chave detectada em nenhuma fonte."
 }
 
 # ─────────────────────────────────────────────
 #  7. RESUMO FINAL
 # ─────────────────────────────────────────────
-Write-Host "`n===== RESUMO DO DIAGNÓSTICO =====" -ForegroundColor Yellow
+Write-Host "`n===== RESUMO DO DIAGNOSTICO =====" -ForegroundColor Yellow
 Write-Log "===== Resumo final ====="
 
 $finalLic = Get-CimInstance -ClassName SoftwareLicensingProduct |
-    Where-Object { $_.PartialProductKey -and $_.ApplicationID -eq $windowsAppID }
+Where-Object { $_.PartialProductKey -and $_.ApplicationID -eq $windowsAppID }
 if (-not $finalLic) {
     $finalLic = Get-CimInstance -ClassName SoftwareLicensingProduct |
-        Where-Object { $_.PartialProductKey -and $_.Name -like 'Windows*' }
+    Where-Object { $_.PartialProductKey -and $_.Name -like 'Windows*' }
 }
 
 if ($finalLic.LicenseStatus -eq 1) {
-    Write-Host "✔ O Windows está ATIVADO." -ForegroundColor Green
+    Write-Host "[OK] O Windows esta ATIVADO." -ForegroundColor Green
     Write-Log "Status final: ATIVADO"
-} else {
-    Write-Host "⚠ O Windows NÃO está ativado. Execute 'slmgr /dlv' para detalhes." -ForegroundColor Red
-    Write-Log "Status final: NÃO ATIVADO"
+}
+else {
+    Write-Host "[ALERTA] O Windows NAO esta ativado. Execute 'slmgr /dlv' para detalhes." -ForegroundColor Red
+    Write-Log "Status final: NAO ATIVADO"
 }
 
 if ($oemKey) {
-    Write-Host "✔ Chave OEM da BIOS: presente e processada." -ForegroundColor Green
+    Write-Host "[OK] Chave OEM da BIOS: presente e processada." -ForegroundColor Green
     if (-not $DiagnosticOnly) {
-        Write-Host "   A chave está disponível no clipboard para uso manual, se necessário." -ForegroundColor Gray
+        Write-Host "   A chave esta disponivel no clipboard para uso manual, se necessario." -ForegroundColor Gray
     }
-} else {
-    Write-Host "⚙ Nenhuma chave OEM da BIOS detectada (comum em PCs montados)." -ForegroundColor Yellow
-    Write-Host "   A ativação pode depender de licença digital vinculada à conta Microsoft." -ForegroundColor Gray
+}
+else {
+    Write-Host "[INFO] Nenhuma chave OEM da BIOS detectada (comum em PCs montados)." -ForegroundColor Yellow
+    Write-Host "   A ativacao pode depender de licenca digital vinculada a conta Microsoft." -ForegroundColor Gray
 }
 
 Write-Host "`nLog completo salvo em: $logFile" -ForegroundColor DarkCyan
-Write-Host "Diagnóstico concluído.`n" -ForegroundColor Cyan
-Write-Log "===== Fim do diagnóstico ====="
+Write-Host "Diagnostico concluido.`n" -ForegroundColor Cyan
+Write-Log "===== Fim do diagnostico ====="
