@@ -1,7 +1,6 @@
 # 📋 Diagnóstico de Licenciamento do Windows
 
 **Script:** `Diagnostico_Windows.ps1`  
-**Autor:** DeepSeek AI  
 **Plataforma:** Windows 10/11  
 **Requer:** Execução como Administrador  
 **Versão:** 1.0
